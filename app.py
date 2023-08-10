@@ -3,6 +3,7 @@ import pandas as pd
 import sqlite3
 
 from flask import Flask, jsonify, request, redirect
+from cleansing import processing_text
 
 from flasgger import Swagger, LazyString, LazyJSONEncoder
 from flasgger import swag_from
@@ -41,6 +42,8 @@ swagger = Swagger(app,
 def hello():
 	return redirect('/docs/')
 
+## RNN
+
 @swag_from("docs/input_processing.yml", methods=['POST'])
 @app.route('/input-processing',methods=['POST'])
 def input_processing():
@@ -77,6 +80,8 @@ def file_processing():
         response_data = jsonify({'response': 'No file uploaded'})
         return response_data
 
+## LSTM
+
 @swag_from("docs/input_processing_lstm.yml", methods=['POST'])
 @app.route('/input_processing_lstm',methods=['POST'])
 def input_processing_lstm():
@@ -99,6 +104,46 @@ def file_processing_lstm():
         df = pd.read_csv(file, encoding='latin1')
         if("data_text" in df.columns):
             json_response = {'Description':'Sentiment Analysis using LSTM',
+                    'Data':{
+                        'Sentiment':'Positive',
+                        'Text':'Text',
+                    },
+                    }
+            response_data = jsonify(json_response)
+            return response_data
+        else:
+            response_data = jsonify({'ERROR_WARNING': "No COLUMNS data_text APPEAR ON THE UPLOADED FILE"})
+            return response_data
+    else:
+        response_data = jsonify({'response': 'No file uploaded'})
+        return response_data
+
+## Regression
+
+@swag_from("docs/input_processing_reg.yml", methods=['POST'])
+@app.route('/input_processing_reg',methods=['POST'])
+def input_processing_reg():
+    text = request.form.get('text')
+    cleaned = processing_text(text)
+
+    json_response = {'Description':'Sentiment Analysis using Regression',
+                    'Data':{
+                        'Sentiment':'Positive',
+                        'Text':text,
+                    },
+                    }
+    response_data = jsonify(json_response)
+
+    return response_data
+
+@swag_from("docs/file_processing_reg.yml", methods=['POST'])
+@app.route('/file_processing_reg', methods=['POST'])
+def file_processing_reg():
+    file = request.files['file']
+    if file:
+        df = pd.read_csv(file, encoding='latin1')
+        if("data_text" in df.columns):
+            json_response = {'Description':'Sentiment Analysis using Regression',
                     'Data':{
                         'Sentiment':'Positive',
                         'Text':'Text',
