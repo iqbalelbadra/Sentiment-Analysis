@@ -48,6 +48,8 @@ def hello():
 @app.route('/input-processing',methods=['POST'])
 def input_processing():
     text = request.form.get('text')
+    cleaned = processing_text(text)
+    
     json_response = {'Description':'Sentiment Analysis using RNN',
                     'Data':{
                         'Sentiment':'Positive',
@@ -86,6 +88,8 @@ def file_processing():
 @app.route('/input_processing_lstm',methods=['POST'])
 def input_processing_lstm():
     text = request.form.get('text')
+    cleaned = processing_text(text)
+
     json_response = {'Description':'Sentiment Analysis using LSTM',
                     'Data':{
                         'Sentiment':'Positive',
