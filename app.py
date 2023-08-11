@@ -143,6 +143,7 @@ def input_processing_reg():
                     'Data':{
                         'Sentiment':result[0],
                         'Text':text,
+                        # 'Cleaned Text':cleaned
                     },
                     }
     response_data = jsonify(json_response)
