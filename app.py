@@ -7,6 +7,10 @@ from cleansing import processing_text
 
 from flasgger import Swagger, LazyString, LazyJSONEncoder
 from flasgger import swag_from
+import pickle
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.linear_model import LogisticRegression
+import numpy as np
 
 app = Flask(__name__)
 app.json_provider_class	 = LazyJSONEncoder
@@ -128,11 +132,16 @@ def file_processing_lstm():
 @app.route('/input_processing_reg',methods=['POST'])
 def input_processing_reg():
     text = request.form.get('text')
-    cleaned = processing_text(text)
+    # cleaned = processing_text(text)
+    with open('cv.pickle', 'rb') as file:
+        cx = pickle.load(file)
+    with open('model.pickle', 'rb') as file:
+        mp = pickle.load(file)
+    result = mp.predict(X=cx.transform([text]))
 
     json_response = {'Description':'Sentiment Analysis using Regression',
                     'Data':{
-                        'Sentiment':'Positive',
+                        'Sentiment':result[0],
                         'Text':text,
                     },
                     }
