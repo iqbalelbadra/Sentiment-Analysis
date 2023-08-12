@@ -1,16 +1,18 @@
 import re
+import pickle
 import pandas as pd
 import sqlite3
+import numpy as np
 
 from flask import Flask, jsonify, request, redirect
 from cleansing import processing_text
+from wnr import create_table,insert_to_table
 
 from flasgger import Swagger, LazyString, LazyJSONEncoder
 from flasgger import swag_from
-import pickle
+
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
-import numpy as np
 
 app = Flask(__name__)
 app.json_provider_class	 = LazyJSONEncoder
@@ -157,13 +159,19 @@ def file_processing_reg():
     if file:
         df = pd.read_csv(file, encoding='latin1')
         if("data_text" in df.columns):
-            json_response = {'Description':'Sentiment Analysis using Regression',
-                    'Data':{
-                        'Sentiment':'Positive',
-                        'Text':'Text',
-                    },
-                    }
-            response_data = jsonify(json_response)
+            create_table()
+            for idx, row in df.iterrows():
+                text = row['data_text']
+                ##cleaned = processing_text(text)
+                with open('cv.pickle', 'rb') as file:
+                    cx = pickle.load(file)
+                with open('model.pickle', 'rb') as file:
+                    mp = pickle.load(file)
+                result = mp.predict(X=cx.transform([text]))
+                insert_to_table(text, result)
+
+            response_data = jsonify({'response': 'SUCCESS PREDICT'})
+            
             return response_data
         else:
             response_data = jsonify({'ERROR_WARNING': "No COLUMNS data_text APPEAR ON THE UPLOADED FILE"})
