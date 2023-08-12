@@ -162,12 +162,12 @@ def file_processing_reg():
             create_table()
             for idx, row in df.iterrows():
                 text = row['data_text']
-                ##cleaned = processing_text(text)
+                cleaned = processing_text(text)
                 with open('cv.pickle', 'rb') as file:
                     cx = pickle.load(file)
                 with open('model.pickle', 'rb') as file:
                     mp = pickle.load(file)
-                result = mp.predict(X=cx.transform([text]))
+                result = mp.predict(X=cx.transform([cleaned]))
                 insert_to_table(text, result)
 
             response_data = jsonify({'response': 'SUCCESS PREDICT'})
