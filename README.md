@@ -68,6 +68,11 @@ This project provides an API and a Streamlit app for sentiment analysis of Bahas
 
 Refer to the `requirements.txt` file for specific versions of the dependencies.
 
+## Demo on huggingface space
+
+https://huggingface.co/spaces/iqbalelbadra/sentiment-analysis
+
+
 ## Author
 
 - Iqbal Ahdagita Elbadra
