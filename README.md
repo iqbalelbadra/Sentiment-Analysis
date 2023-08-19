@@ -27,8 +27,8 @@ This project provides an API and a Streamlit app for sentiment analysis of Bahas
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/your-repo.git
-   cd your-repo
+   git clone https://github.com/iqbalelbadra/Sentiment-Analysis
+   cd Sentiment-Analysis
    ```
 
 2. Install the required dependencies using pip:
