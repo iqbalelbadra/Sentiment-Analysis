@@ -5,15 +5,15 @@ from cleansing import processing_text
 from wnr import create_table, insert_to_table
 
 # Load model and CountVectorizer
-with open('model.pickle', 'rb') as model_file:
-    model = pickle.load(model_file)
+with open('Pickle/modelRegressi.pickle', 'rb') as model_file:
+    modelr = pickle.load(model_file)
 
-with open('cv.pickle', 'rb') as cv_file:
-    cv = pickle.load(cv_file)
+with open('Pickle/cvregressi.pickle', 'rb') as cv_file:
+    cvr = pickle.load(cv_file)
 
 def predict_sentiment(text):
     cleaned_text = processing_text(text)
-    result = model.predict(cv.transform([cleaned_text]))
+    result = modelr.predict(cvr.transform([cleaned_text]))
     return result[0]
 
 def main():

@@ -135,9 +135,9 @@ def file_processing_lstm():
 def input_processing_reg():
     text = request.form.get('text')
     # cleaned = processing_text(text)
-    with open('cv.pickle', 'rb') as file:
+    with open('Pickle/cvregressi.pickle', 'rb') as file:
         cx = pickle.load(file)
-    with open('model.pickle', 'rb') as file:
+    with open('Pickle/modelRegressi.pickle', 'rb') as file:
         mp = pickle.load(file)
     result = mp.predict(X=cx.transform([text]))
 
@@ -163,9 +163,9 @@ def file_processing_reg():
             for idx, row in df.iterrows():
                 text = row['data_text']
                 cleaned = processing_text(text)
-                with open('cv.pickle', 'rb') as file:
+                with open('Pickle/cvregressi.pickle', 'rb') as file:
                     cx = pickle.load(file)
-                with open('model.pickle', 'rb') as file:
+                with open('Pickle/modelRegressi.pickle', 'rb') as file:
                     mp = pickle.load(file)
                 result = mp.predict(X=cx.transform([cleaned]))
                 insert_to_table(text, result)
