@@ -52,10 +52,12 @@ def loading_all_files():
     tokenizer = pickle.load(open('Pickle/tokenizer.pkl','rb'))
     onehot = pickle.load(open('Pickle/onehot.pkl','rb'))
     input_len = pickle.load(open('Pickle/input_len.pkl','rb'))
-    
-    return tokenizer, onehot, input_len
+    count_vec = pickle.load(open('Pickle/count_vec.pkl','rb'))
+    label_enc = pickle.load(open('Pickle/label_enc.pkl','rb'))
 
-tokenizer, onehot, input_len = loading_all_files()
+    return tokenizer, onehot, input_len, count_vec, label_enc
+
+tokenizer, onehot, input_len, count_vec, label_enc = loading_all_files()
 
 
 @app.route('/', methods= ['GET'])
@@ -70,7 +72,7 @@ def hello():
 def input_processing():
     text = request.form.get('text')
     cleaned = processing_text(text)
-    model_cnn= load_model('Model/model_CNN.h5')
+    model_cnn = pickle.load(open('Model/model_CNN.h5','rb'))
     paragraph = tokenizer.texts_to_sequences(cleaned)
     padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
 
@@ -79,6 +81,8 @@ def input_processing():
     sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
     probability = np.max(y_pred, axis=1)[0]
     probability = float(probability)
+    probability = '{:.0%}'.format(probability)
+
     json_response = {'Description':'Sentiment Analysis using CNN',
                     'Data':{
                         'Sentiment':sentiment,
@@ -101,7 +105,7 @@ def file_processing():
             for idx, row in df.iterrows():
                 text = row['data_text']
                 cleaned = processing_text(text)
-                model_cnn= tf.keras.models.load_model('Model/model_CNN.h5')
+                model_cnn = pickle.load(open('Model/model_CNN.h5','rb'))
                 paragraph = tokenizer.texts_to_sequences(cleaned)
                 padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
 
@@ -129,14 +133,11 @@ def input_processing_nn():
     text = request.form.get('text')
     cleaned = processing_text(text)
     model_nn = pickle.load(open('Model/model_NN_sklearn.h5','rb'))
-    
-    paragraph = tokenizer.texts_to_sequences([cleaned])
-    padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
-    y_pred = model_nn.predict(padded_paragraph)
-    sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
-    probability = np.max(y_pred, axis=1)[0]
-    probability = float(probability)
-    json_response = {'Description':'Sentiment Analysis using CNN',
+
+    y_pred = model_nn.predict(count_vec.transform([cleaned]))
+    sentiment = label_enc.inverse_transform(y_pred).reshape(-1)[0]
+    probability = 0.0
+    json_response = {'Description':'Sentiment Analysis using NN',
                     'Data':{
                         'Sentiment':sentiment,
                         'Text':text,
@@ -158,15 +159,11 @@ def file_processing_nn():
             for idx, row in df.iterrows():
                 text = row['data_text']
                 cleaned = processing_text(text)
-                model_cnn= tf.keras.models.load_model('Model/model_CNN.h5')
-                paragraph = tokenizer.texts_to_sequences(cleaned)
-                padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
+                model_nn = pickle.load(open('Model/model_NN_sklearn.h5','rb'))
 
-                y_pred = model_cnn.predict(padded_paragraph, batch_size=1)
-
-                sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
-                probability = np.max(y_pred, axis=1)[0]
-                probability = float(probability)
+                y_pred = model_nn.predict(count_vec.transform([cleaned]))
+                sentiment = label_enc.inverse_transform(y_pred).reshape(-1)[0]
+                probability = 0.0
                 insert_to_table(text, sentiment, probability)
 
             response_data = jsonify({'response': 'SUCCESS PREDICT'})

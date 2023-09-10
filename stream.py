@@ -31,10 +31,12 @@ def loading_all_files():
     tokenizer = pickle.load(open('Pickle/tokenizer.pkl','rb'))
     onehot = pickle.load(open('Pickle/onehot.pkl','rb'))
     input_len = pickle.load(open('Pickle/input_len.pkl','rb'))
-    
-    return tokenizer, onehot, input_len
+    count_vec = pickle.load(open('Pickle/count_vec.pkl','rb'))
+    label_enc = pickle.load(open('Pickle/label_enc.pkl','rb'))
 
-tokenizer, onehot, input_len = loading_all_files()
+    return tokenizer, onehot, input_len, count_vec, label_enc
+
+tokenizer, onehot, input_len, count_vec, label_enc = loading_all_files()
 
 
 def predict_sentiment(text):
@@ -42,7 +44,7 @@ def predict_sentiment(text):
     result = modelr.predict(cvr.transform([cleaned_text]))
     return result[0]
 
-def predict_sentiment_nn(text):
+def predict_sentiment_cnn(text):
     cleaned_text = processing_text(text)
     model_cnn = pickle.load(open('Model/model_CNN.h5','rb'))
     paragraph = tokenizer.texts_to_sequences(cleaned_text)
@@ -50,6 +52,14 @@ def predict_sentiment_nn(text):
 
     y_pred = model_cnn.predict(padded_paragraph, batch_size=1)
     sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
+    return sentiment
+
+def predict_sentiment_nn(text):
+    cleaned_text = processing_text(text)
+    model_nn = pickle.load(open('Model/model_NN_sklearn.h5','rb'))
+    
+    y_pred = model_nn.predict(count_vec.transform([cleaned_text]))
+    sentiment = label_enc.inverse_transform(y_pred).reshape(-1)[0]
     return sentiment
 
 def predict_sentiment_lstm(text):
@@ -65,17 +75,17 @@ def predict_sentiment_lstm(text):
 
 def main():
     st.sidebar.title('Sentiment Analysis')
-    option = st.sidebar.radio('Choose an option', ('Using NN', 'Using LSTM', 'Using Regression'))
+    option = st.sidebar.radio('Choose an option', ('Using NN','Using CNN', 'Using LSTM', 'Using Regression'))
 
-    if option == 'Using NN':
-        st.title('Sentiment Analysis App - Using NN')
+    if option == 'Using CNN':
+        st.title('Sentiment Analysis App - Using CNN')
 
         optionreg = st.selectbox('Choose an option', ('Input Processing', 'File Processing'))
 
         if optionreg == 'Input Processing':
             text_input = st.text_area('Enter text')
             if st.button('Predict'):
-                sentiment = predict_sentiment_nn(text_input)
+                sentiment = predict_sentiment_cnn(text_input)
                 st.write(f'Sentiment: {sentiment}')
 
         elif optionreg == 'File Processing':
@@ -116,7 +126,32 @@ def main():
                     st.success('Prediction and storage complete')
                 else:
                     st.error('No "data_text" column in the CSV file')
- 
+    
+    elif option == 'Using NN':
+        st.title('Sentiment Analysis App - Using NN')
+
+        optionreg = st.selectbox('Choose an option', ('Input Processing', 'File Processing'))
+
+        if optionreg == 'Input Processing':
+            text_input = st.text_area('Enter text')
+            if st.button('Predict'):
+                sentiment = predict_sentiment_nn(text_input)
+                st.write(f'Sentiment: {sentiment}')
+
+        elif optionreg == 'File Processing':
+            file = st.file_uploader('Upload a CSV file', type=['csv'])
+            if file is not None:
+                df = pd.read_csv(file)
+                if 'data_text' in df.columns:
+                    create_table()
+                    for idx, row in df.iterrows():
+                        text = row['data_text']
+                        sentiment = predict_sentiment_nn(text)
+                        insert_to_table(text, sentiment)
+                    st.success('Prediction and storage complete')
+                else:
+                    st.error('No "data_text" column in the CSV file')
+
     elif option == 'Using Regression':
         st.title('Sentiment Analysis App - Using Regression')
 
