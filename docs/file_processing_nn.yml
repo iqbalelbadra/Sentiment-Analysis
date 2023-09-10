@@ -1,0 +1,19 @@
+tags:
+  - name: Sentiment Analysis using NN
+get:
+  description: File yang akan di proses
+consumes:
+  - multipart/form-data
+parameters:
+  - name: file
+    in: formData
+    type: file
+    required: true
+    description: The CSV file to upload and process
+responses:
+  '200':
+    description: Successful Responses
+  '400':
+    description: Bad Request
+  '500':
+    description: Internal Server Error

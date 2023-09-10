@@ -15,7 +15,9 @@ from flasgger import swag_from
 from keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
 
 app = Flask(__name__)
@@ -69,9 +71,6 @@ def input_processing():
     text = request.form.get('text')
     cleaned = processing_text(text)
     model_cnn= load_model('Model/model_CNN.h5')
-    #model_cnntf= tf.keras.models.load_model('Model/model_CNN.h5')
-    print(model_cnn)
-    #print(model_cnntf)
     paragraph = tokenizer.texts_to_sequences(cleaned)
     padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
 
@@ -94,6 +93,63 @@ def input_processing():
 @swag_from("docs/file_processing.yml", methods=['POST'])
 @app.route('/file-processing', methods=['POST'])
 def file_processing():
+    file = request.files['file']
+    if file:
+        df = pd.read_csv(file, encoding='latin1')
+        if("data_text" in df.columns):
+            create_table()
+            for idx, row in df.iterrows():
+                text = row['data_text']
+                cleaned = processing_text(text)
+                model_cnn= tf.keras.models.load_model('Model/model_CNN.h5')
+                paragraph = tokenizer.texts_to_sequences(cleaned)
+                padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
+
+                y_pred = model_cnn.predict(padded_paragraph, batch_size=1)
+
+                sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
+                probability = np.max(y_pred, axis=1)[0]
+                probability = float(probability)
+                insert_to_table(text, sentiment, probability)
+
+            response_data = jsonify({'response': 'SUCCESS PREDICT'})
+            return response_data
+        else:
+            response_data = jsonify({'ERROR_WARNING': "No COLUMNS data_text APPEAR ON THE UPLOADED FILE"})
+            return response_data
+    else:
+        response_data = jsonify({'response': 'No file uploaded'})
+        return response_data
+
+## NN
+
+@swag_from("docs/input_processing_nn.yml", methods=['POST'])
+@app.route('/input-processing-nn',methods=['POST'])
+def input_processing_nn():
+    text = request.form.get('text')
+    cleaned = processing_text(text)
+    model_nn = pickle.load(open('Model/model_NN_sklearn.h5','rb'))
+    
+    paragraph = tokenizer.texts_to_sequences([cleaned])
+    padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
+    y_pred = model_nn.predict(padded_paragraph)
+    sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
+    probability = np.max(y_pred, axis=1)[0]
+    probability = float(probability)
+    json_response = {'Description':'Sentiment Analysis using CNN',
+                    'Data':{
+                        'Sentiment':sentiment,
+                        'Text':text,
+                        'Probability':probability,
+                    },
+                    }
+    response_data = jsonify(json_response)
+
+    return response_data
+
+@swag_from("docs/file_processing_nn.yml", methods=['POST'])
+@app.route('/file-processing-nn', methods=['POST'])
+def file_processing_nn():
     file = request.files['file']
     if file:
         df = pd.read_csv(file, encoding='latin1')
