@@ -44,7 +44,7 @@ def predict_sentiment(text):
 
 def predict_sentiment_nn(text):
     cleaned_text = processing_text(text)
-    model_nn = pickle.load(open('Model/model_NN.h5','rb'))
+    model_cnn = pickle.load(open('Model/model_CNN.h5','rb'))
     paragraph = tokenizer.texts_to_sequences(cleaned_text)
     padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
 
