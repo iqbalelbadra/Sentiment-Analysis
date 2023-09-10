@@ -94,13 +94,21 @@ def file_processing():
     if file:
         df = pd.read_csv(file, encoding='latin1')
         if("data_text" in df.columns):
-            json_response = {'Description':'Sentiment Analysis using CNN',
-                    'Data':{
-                        'Sentiment':'Positive',
-                        'Text':'Text',
-                    },
-                    }
-            response_data = jsonify(json_response)
+            create_table()
+            for idx, row in df.iterrows():
+                text = row['data_text']
+                model_cnn= load_model('Model/model_CNN.h5')
+                paragraph = tokenizer.texts_to_sequences(text)
+                padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
+
+                y_pred = model_cnn.predict(padded_paragraph, batch_size=1)
+
+                sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
+                probability = np.max(y_pred, axis=1)[0]
+                probability = float(probability)
+                insert_to_table(text, sentiment, probability)
+
+            response_data = jsonify({'response': 'SUCCESS PREDICT'})
             return response_data
         else:
             response_data = jsonify({'ERROR_WARNING': "No COLUMNS data_text APPEAR ON THE UPLOADED FILE"})
