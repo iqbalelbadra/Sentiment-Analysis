@@ -11,8 +11,11 @@ from wnr import create_table,insert_to_table
 from flasgger import Swagger, LazyString, LazyJSONEncoder
 from flasgger import swag_from
 
+from keras.models import load_model
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score, accuracy_score
 
 app = Flask(__name__)
 app.json_provider_class	 = LazyJSONEncoder
@@ -42,24 +45,42 @@ swagger = Swagger(app,
 				  config = swagger_config
 				 )
 
+def loading_all_files():
+    tokenizer = pickle.load(open('Pickle/tokenizer.pkl','rb'))
+    onehot = pickle.load(open('Pickle/onehot.pkl','rb'))
+    input_len = pickle.load(open('Pickle/input_len.pkl','rb'))
+    
+    return tokenizer, onehot, input_len
+
+tokenizer, onehot, input_len = loading_all_files()
 
 
 @app.route('/', methods= ['GET'])
 def hello():
 	return redirect('/docs/')
 
-## RNN
+
+## CNN
 
 @swag_from("docs/input_processing.yml", methods=['POST'])
 @app.route('/input-processing',methods=['POST'])
 def input_processing():
     text = request.form.get('text')
     cleaned = processing_text(text)
-    
-    json_response = {'Description':'Sentiment Analysis using RNN',
+    model_cnn= load_model('Model/model_CNN.h5')
+    paragraph = tokenizer.texts_to_sequences(text)
+    padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
+
+    y_pred = model_cnn.predict(padded_paragraph, batch_size=1)
+
+    sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
+    probability = np.max(y_pred, axis=1)[0]
+    probability = float(probability)
+    json_response = {'Description':'Sentiment Analysis using CNN',
                     'Data':{
-                        'Sentiment':'Positive',
+                        'Sentiment':sentiment,
                         'Text':text,
+                        'Probability':probability,
                     },
                     }
     response_data = jsonify(json_response)
@@ -73,7 +94,7 @@ def file_processing():
     if file:
         df = pd.read_csv(file, encoding='latin1')
         if("data_text" in df.columns):
-            json_response = {'Description':'Sentiment Analysis using RNN',
+            json_response = {'Description':'Sentiment Analysis using CNN',
                     'Data':{
                         'Sentiment':'Positive',
                         'Text':'Text',
@@ -95,11 +116,22 @@ def file_processing():
 def input_processing_lstm():
     text = request.form.get('text')
     cleaned = processing_text(text)
+    model_lstm = pickle.load(open('Model/model_LSTM.h5','rb'))
+    paragraph = tokenizer.texts_to_sequences(cleaned)
+    padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
+
+    y_pred = model_lstm.predict(padded_paragraph, batch_size=1)
+
+    sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
+    probability = np.max(y_pred, axis=1)[0]
+    probability = float(probability)
+    probability = '{:.0%}'.format(probability)
 
     json_response = {'Description':'Sentiment Analysis using LSTM',
                     'Data':{
-                        'Sentiment':'Positive',
-                        'Text':text,
+                        'Sentiment': sentiment,
+                        'Text': text,
+                        'Probability': probability,
                     },
                     }
     response_data = jsonify(json_response)
@@ -113,13 +145,22 @@ def file_processing_lstm():
     if file:
         df = pd.read_csv(file, encoding='latin1')
         if("data_text" in df.columns):
-            json_response = {'Description':'Sentiment Analysis using LSTM',
-                    'Data':{
-                        'Sentiment':'Positive',
-                        'Text':'Text',
-                    },
-                    }
-            response_data = jsonify(json_response)
+            create_table()
+            for idx, row in df.iterrows():
+                text = row['data_text']
+                model_lstm = pickle.load(open('Model/model_LSTM.h5','rb'))
+                paragraph = tokenizer.texts_to_sequences(text)
+                padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
+
+                y_pred = model_lstm.predict(padded_paragraph, batch_size=1)
+
+                sentiment = onehot.inverse_transform(y_pred).reshape(-1)[0]
+                probability = np.max(y_pred, axis=1)[0]
+                probability = float(probability)
+                insert_to_table(text, sentiment, probability)
+
+            response_data = jsonify({'response': 'SUCCESS PREDICT'})
+
             return response_data
         else:
             response_data = jsonify({'ERROR_WARNING': "No COLUMNS data_text APPEAR ON THE UPLOADED FILE"})
@@ -139,13 +180,15 @@ def input_processing_reg():
         cx = pickle.load(file)
     with open('Pickle/modelRegressi.pickle', 'rb') as file:
         mp = pickle.load(file)
+    
     result = mp.predict(X=cx.transform([text]))
-
+    accuracy = 0.0
+    
     json_response = {'Description':'Sentiment Analysis using Regression',
                     'Data':{
                         'Sentiment':result[0],
                         'Text':text,
-                        # 'Cleaned Text':cleaned
+                        'Probability':accuracy,
                     },
                     }
     response_data = jsonify(json_response)
@@ -168,7 +211,9 @@ def file_processing_reg():
                 with open('Pickle/modelRegressi.pickle', 'rb') as file:
                     mp = pickle.load(file)
                 result = mp.predict(X=cx.transform([cleaned]))
-                insert_to_table(text, result)
+                accuracy = 0.0
+                result = result[0]
+                insert_to_table(text, result, accuracy)
 
             response_data = jsonify({'response': 'SUCCESS PREDICT'})
             
