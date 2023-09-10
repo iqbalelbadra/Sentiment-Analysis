@@ -3,6 +3,7 @@ import pickle
 import pandas as pd
 import sqlite3
 import numpy as np
+import tensorflow as tf
 
 from flask import Flask, jsonify, request, redirect
 from cleansing import processing_text
@@ -68,7 +69,10 @@ def input_processing():
     text = request.form.get('text')
     cleaned = processing_text(text)
     model_cnn= load_model('Model/model_CNN.h5')
-    paragraph = tokenizer.texts_to_sequences(text)
+    #model_cnntf= tf.keras.models.load_model('Model/model_CNN.h5')
+    print(model_cnn)
+    #print(model_cnntf)
+    paragraph = tokenizer.texts_to_sequences(cleaned)
     padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
 
     y_pred = model_cnn.predict(padded_paragraph, batch_size=1)
@@ -97,8 +101,9 @@ def file_processing():
             create_table()
             for idx, row in df.iterrows():
                 text = row['data_text']
-                model_cnn= load_model('Model/model_CNN.h5')
-                paragraph = tokenizer.texts_to_sequences(text)
+                cleaned = processing_text(text)
+                model_cnn= tf.keras.models.load_model('Model/model_CNN.h5')
+                paragraph = tokenizer.texts_to_sequences(cleaned)
                 padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
 
                 y_pred = model_cnn.predict(padded_paragraph, batch_size=1)
@@ -156,8 +161,9 @@ def file_processing_lstm():
             create_table()
             for idx, row in df.iterrows():
                 text = row['data_text']
+                cleaned = processing_text(text)
                 model_lstm = pickle.load(open('Model/model_LSTM.h5','rb'))
-                paragraph = tokenizer.texts_to_sequences(text)
+                paragraph = tokenizer.texts_to_sequences(cleaned)
                 padded_paragraph = pad_sequences(paragraph, padding='post', maxlen=input_len)
 
                 y_pred = model_lstm.predict(padded_paragraph, batch_size=1)
@@ -183,13 +189,13 @@ def file_processing_lstm():
 @app.route('/input_processing_reg',methods=['POST'])
 def input_processing_reg():
     text = request.form.get('text')
-    # cleaned = processing_text(text)
+    cleaned = processing_text(text)
     with open('Pickle/cvregressi.pickle', 'rb') as file:
         cx = pickle.load(file)
     with open('Pickle/modelRegressi.pickle', 'rb') as file:
         mp = pickle.load(file)
     
-    result = mp.predict(X=cx.transform([text]))
+    result = mp.predict(X=cx.transform([cleaned]))
     accuracy = 0.0
     
     json_response = {'Description':'Sentiment Analysis using Regression',
