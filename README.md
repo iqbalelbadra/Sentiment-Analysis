@@ -97,6 +97,10 @@ This will start the Streamlit app, and you can access it via your web browser. F
 
 [Demo on Hugging Face Space](https://huggingface.co/spaces/iqbalelbadra/sentiment-analysis)
 
+## Demo on streamlit share
+
+[Demo on Streamlit Share](https://sentiment-indonesia.streamlit.app/)
+
 ## Author
 
 - Iqbal Ahdagita Elbadra
