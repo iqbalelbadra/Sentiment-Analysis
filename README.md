@@ -121,5 +121,3 @@ Contributions are welcome! If you'd like to improve this project or add new feat
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-
-You can copy and paste this README template into a file named `README.md` in your GitHub repository. Be sure to customize it to include any additional information specific to your project.
